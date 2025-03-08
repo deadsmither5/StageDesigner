@@ -1,0 +1,10 @@
+open-clip-torch
+compress_json==1.1.0
+compress_pickle==2.1.0
+diffusers==0.31.0
+matplotlib==3.7.1
+matplotlib==3.8.0
+numpy==1.24.4
+openai==1.65.4
+sentence_transformers==3.2.0
+torch==2.4.1
