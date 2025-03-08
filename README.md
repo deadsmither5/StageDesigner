@@ -9,10 +9,12 @@ Sichen Guo³, Huanling Hu¹, Guangnan Ye†¹, Zuo Hu³</b>
 📧 zxgan23@m.fudan.edu.cn, mtli@shu.edu.cn, yegn@fudan.edu.cn, {chenruhua, zhongxia.ji, huzuo}@sta.edu.cn  
 <div>
 
-<h2 align="center">
-    <img src="https://github.com/deadsmither5/StageDesigner/blob/main/teaser.png" width="200px"/>
-</h2>
 
+<h5 align="center">
+<img src="https://github.com/deadsmither5/StageDesigner/blob/main/teaser.png" width="800px"/><br/>
+</h5>
+
+ 
 ## Installation
 Install the required dependencies using the following commands:
 ```
