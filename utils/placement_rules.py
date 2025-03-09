@@ -5,7 +5,7 @@ import pdb
 import re
 import math
 
-# 定义三维物体或区域的边界矩形类，用于表示物体的边界
+
 class Rectangle:
     def __init__(self, x_left, y_left, x_right, y_right, height_low, height_high, name=None, orientation='front', description=None):
         self.x_left = x_left
@@ -15,26 +15,25 @@ class Rectangle:
         self.height_low = height_low
         self.height_high = height_high
         self.name = name
-        self.orientation = orientation  # 默认朝向
+        self.orientation = orientation  
         self.surface_collision_maps = {
             'front_surface': None,
             'left_surface': None,
             'right_surface': None,
             'top_surface': None
-        }  # 各表面的碰撞检测图
+        }  
         self.description = description
-    # 检查当前矩形是否与另一个矩形重叠（包括高度）
+    
     def is_overlapping(self, other):
         if self.x_right <= other.x_left or self.x_left >= other.x_right:
             return False
         if self.y_right <= other.y_left or self.y_left >= other.y_right:
             return False
-        # 检查高度是否重叠
+       
         if self.height_high <= other.height_low or self.height_low >= other.height_high:
             return False
         return True
 
-    # 获取矩形的边界
     def get_bounding_box(self):
         return [self.x_left, self.y_left, self.x_right, self.y_right, self.height_low, self.height_high]
 
@@ -45,14 +44,13 @@ def anchor_angle(anchor):
         return "right"
     return "front"
 
-# 解析输入数据，生成锚定物体和非锚定物体的列表
+
 def parse_anchor_prompt_data(text, collision_map):
     entities = json.loads(text)
     anchor_entities = []
     non_anchor_entities = []
 
     for item in entities:
-        # 解析anchor实体
         anchor_data = item["anchor_entity"]
         anchor_rect = Rectangle(
             x_left = anchor_data["left"][0],
@@ -67,7 +65,6 @@ def parse_anchor_prompt_data(text, collision_map):
         )
         anchor_entities.append(anchor_rect)
 
-        # 初始化每个表面的碰撞图（根据锚定物体的高度和宽度）(y,x)
         anchor_rect.surface_collision_maps['front_surface'] = initialize_collision_map(
             anchor_rect.height_high - anchor_rect.height_low, anchor_rect.x_right - anchor_rect.x_left)
         anchor_rect.surface_collision_maps['left_surface'] = initialize_collision_map(
@@ -77,12 +74,12 @@ def parse_anchor_prompt_data(text, collision_map):
         anchor_rect.surface_collision_maps['top_surface'] = initialize_collision_map(
             anchor_rect.y_right - anchor_rect.y_left, anchor_rect.x_right - anchor_rect.x_left
         )
-        #更新anchor在floor的碰撞图
+  
         update_collision_map(collision_map, anchor_rect.x_left, anchor_rect.y_left, anchor_rect.x_left - anchor_rect.x_right, anchor_rect.y_right - anchor_rect.y_left)
-        # 解析非锚定实体
+ 
         non_anchors = item.get("non_anchor_entities", [])
         for non_anchor in non_anchors:
-            non_anchor["anchor_name"] = anchor_data["name"]  # 添加锚定物体名称
+            non_anchor["anchor_name"] = anchor_data["name"] 
             non_anchor_entities.append(non_anchor)
 
     return anchor_entities, non_anchor_entities
@@ -90,9 +87,8 @@ def parse_anchor_prompt_data(text, collision_map):
 def parse_ornament_prompt_data(text, non_anchor_entities):
     entities = json.loads(text)
     for item in entities:
-        # 解析非锚定实体
         if any(rule in item['placement_rule'] for rule in ['place_beside', 'place_top']):
-            item["anchor_name"] = item['placement_rule'].split('(')[1].split(')')[0]  # 添加锚定物体名称
+            item["anchor_name"] = item['placement_rule'].split('(')[1].split(')')[0] 
         elif 'place_attach' in item['placement_rule']:
             content = item['placement_rule'][item['placement_rule'].find('(') + 1 : item['placement_rule'].rfind(')')]    
             parts = [part.strip() for part in content.split(',')]
@@ -103,49 +99,41 @@ def parse_ornament_prompt_data(text, non_anchor_entities):
 
     return non_anchor_entities
 
-# 初始化一个矩形区域的表面碰撞图（height, width）
-def initialize_collision_map(height, width):
-    return np.zeros((height, width), dtype=np.uint8)  # 0 表示可用区域，1 表示已被占用
 
-def is_valid_position(x, y, h, w, collision_map):#3d 里面h代表x轴 map(y,x)
+def initialize_collision_map(height, width):
+    return np.zeros((height, width), dtype=np.uint8) 
+
+def is_valid_position(x, y, h, w, collision_map):
     if x is None or y is None or h <= 0 or w <= 0:
         return False
-    # 边界检查，防止索引越界
+
     if not (0 <= y < collision_map.shape[0] and 0 <= x < collision_map.shape[1]):
         return False
     if not (0 <= y + w < collision_map.shape[0] and 0 <= x + h < collision_map.shape[1]):
         return False
 
-    # 检查指定位置是否在边界外或被占用 (1 表示已被占用)
+ 
     if 1 in collision_map[max(0, y):min(collision_map.shape[0], y + w),
                           max(0, x):min(collision_map.shape[1], x + h)]:
         return False
-    # 检查指定位置是否为空（0 表示可用）
+
     return np.all(collision_map[y:y + w, x:x + h] == 0)
 
-# 更新碰撞图：标记物体在某个位置的占用情况
+
 def update_collision_map(collision_map, x, y, h, w):
-    """
-    更新碰撞图，在指定的局部坐标系位置标记物体区域为占用状态（1表示已占用）。
-    :param collision_map: 表面的碰撞检测图
-    :param y: 局部表面坐标系中的起始y坐标
-    :param x: 局部表面坐标系中的起始x坐标
-    :param h: 物体在表面上的高度
-    :param w: 物体在表面上的宽度
-    :param buffer: 缓冲区大小，用于确保物体与其他物体或边界的间距
-    """
+
     x = min(999, max(0, math.ceil(x)))
     y = min(999, max(0, math.ceil(y)))
     h = min(999, max(0, math.ceil(h)))
     w = min(999, max(0, math.ceil(w)))
-    # 边界检查，防止更新时越界
+   
     collision_map[max(0, y):min(collision_map.shape[0], y + w),
-                  max(0, x):min(collision_map.shape[1], x + h)] = 1  # 1 表示占用
+                  max(0, x):min(collision_map.shape[1], x + h)] = 1 
 
-# 定义物体的放置策略，返回非锚定物体的最终位置, 考虑要不要一层一层的递归往上，其实感觉没有必要叠太多, 如果要递归，第一层anchor就可以设置成floor(0,0, 999,999, 0, 0)，
+
 def place_entity(anchor, entity, collision_map):
     anchor_x_left, anchor_y_left, anchor_x_right, anchor_y_right, anchor_height_low, anchor_height_high = anchor.get_bounding_box()
-    entity_length, entity_width, entity_height = entity['dimensions']#长是横着的对应x轴，宽是竖着的对应y轴
+    entity_length, entity_width, entity_height = entity['dimensions']
 
     if "place_beside" in entity["placement_rule"]:
         surfaces = ['front', 'left', 'right']
@@ -159,7 +147,7 @@ def place_entity(anchor, entity, collision_map):
             angle = random.choice(surfaces)
             if angle == 'front':
                 left_bound = search_area_left - entity_length
-                for _ in range(5000):  # 随机采样5000次
+                for _ in range(5000): 
                     x_offset = random.randint(0, search_area_right - left_bound)
                     y_offset = random.randint(0, search_area_front - anchor_y_right)
                     place_left = left_bound + x_offset
@@ -225,13 +213,12 @@ def place_entity(anchor, entity, collision_map):
             
             surfaces.remove(angle)
         
-    # 若未找到合适位置，则返回 None
+
     elif "place_top" in entity["placement_rule"]:
         surface_collision_map = anchor.surface_collision_maps['top_surface']
-        MAX_ATTEMPTS = 5000  # 最大采样次数
+        MAX_ATTEMPTS = 5000 
         surfaces = ['front', 'left', 'right']
         for _ in range(MAX_ATTEMPTS):
-            # 在允许的范围内随机采样
             if surfaces == []:
                 return None
             orientation = random.choice(surfaces)
@@ -253,9 +240,7 @@ def place_entity(anchor, entity, collision_map):
             place_back = random.randint(0, surface_collision_map.shape[0] - x)
             place_left = random.randint(0, surface_collision_map.shape[1] - y)
             if is_valid_position(place_left, place_back, y, x, surface_collision_map):
-                # 更新碰撞地图
                 update_collision_map(surface_collision_map, place_left, place_back, y, x)
-                # 返回找到的有效位置
                 return Rectangle(
                     place_left + anchor_x_left,
                     place_back + anchor_y_left,
@@ -267,15 +252,12 @@ def place_entity(anchor, entity, collision_map):
                     orientation = orientation,
                     description = entity['description']
                 )
-        # 如果在最大尝试次数内没有找到合适位置，返回 None
 
     elif "place_attach" in entity["placement_rule"]:
         def extract_first_two_numbers(rule):
-            # 使用正则表达式提取所有整数
             numbers = re.findall(r'\d+', rule)         
             if len(numbers) < 2:
                 raise ValueError("Placement rule must contain at least two integers.")
-            # 转换前两个数字为整数
             h_low, h_high = map(int, numbers[:2])
             return h_low, h_high
 
@@ -295,10 +277,9 @@ def place_entity(anchor, entity, collision_map):
             surface_collision_map = anchor.surface_collision_maps[chosen_surface]
             if surface_collision_map.shape[1] < entity_length:
                 surfaces.remove(chosen_surface)
-                continue  # 尝试其他表面
-            MAX_ATTEMPTS = 5000  # 最大采样次数
+                continue  
+            MAX_ATTEMPTS = 5000  
             for _ in range(MAX_ATTEMPTS):
-                # 随机采样 x_offset 范围
                 x_offset = random.randint(0, surface_collision_map.shape[1] - entity_length)
                 if chosen_surface == 'front_surface':
                     place_left = x_offset
@@ -349,11 +330,11 @@ def place_corner(entity, collision_map):
     
     if (250 - entity_length <= 0) or (250 - entity_width <= 0):
         print(f"Entity {entity['name']} is too large to fit in the corner area.")
-        return None  # 如果无法放置，直接返回 None
+        return None  
     
     while corner:
         chosen_corner = random.choice(corner)
-        SEARCH_ATTEMPTS = 5000  # 每个角落采样 1000 次
+        SEARCH_ATTEMPTS = 5000 
         for _ in range(SEARCH_ATTEMPTS):
             orientation = random.choice(['front', 'right'])
             if orientation == 'front':
@@ -362,8 +343,7 @@ def place_corner(entity, collision_map):
             else:
                 x = entity_width
                 y = entity_length
-                    
-            # 根据角落选择生成随机位置（每个角落范围为 250x250）
+ 
             if chosen_corner == 'left_back':
                 place_left = random.randint(0, 250 - x)
                 place_back = random.randint(0, 250 - y)
@@ -380,12 +360,9 @@ def place_corner(entity, collision_map):
                 place_left = random.randint(750, 999 - x)
                 place_back = random.randint(750, 999 - y)
 
-            # 检查当前位置是否有效
-            if is_valid_position(place_left, place_back, x, y, collision_map):
-                # 更新碰撞地图
-                update_collision_map(collision_map, place_left, place_back, x, y)
 
-                # 返回生成的实体矩形对象
+            if is_valid_position(place_left, place_back, x, y, collision_map):
+                update_collision_map(collision_map, place_left, place_back, x, y)
                 return Rectangle(
                     place_left,
                     place_back,
@@ -397,25 +374,16 @@ def place_corner(entity, collision_map):
                     orientation=orientation,
                     description=entity['description']
                 )
-
-        # 如果当前角落无法找到合适的位置，则尝试其他角落
         corner.remove(chosen_corner)
-
-    # 如果所有角落都无法找到合适的位置，则返回 None
     return None
 
 def place_center(entity, collision_map):
     entity_length, entity_width, entity_height = entity['dimensions']
-
-    # 检查实体是否能放进 (250, 250) 到 (750, 750) 区域
     if (749 - entity_length <= 250) or (749 - entity_width <= 250):
         print(f"Entity {entity['name']} is too large to fit in the central area.")
-        return None  # 如果无法放置，直接返回 None
-
-    SEARCH_ATTEMPTS = 5000  # 在范围内随机尝试 5000 次
-
+        return None  
+    SEARCH_ATTEMPTS = 5000  
     for _ in range(SEARCH_ATTEMPTS):
-        # 在 (250, 250) 到 (749 - entity_length, 749 - entity_width) 范围内生成随机位置
         orientation = random.choice(['front', 'left', 'right'])
         if orientation == 'front':
             x = entity_length
@@ -426,12 +394,8 @@ def place_center(entity, collision_map):
             
         place_left = random.randint(250, 749 - x)
         place_back = random.randint(250, 749 - y)
-        # 检查该位置是否有效
         if is_valid_position(place_left, place_back, x, y, collision_map):
-            # 更新碰撞地图
             update_collision_map(collision_map, place_left, place_back, x, y)
-
-            # 返回包含位置和尺寸的 Rectangle 对象
             return Rectangle(
                 place_left,
                 place_back,
@@ -443,13 +407,9 @@ def place_center(entity, collision_map):
                 orientation=orientation,
                 description=entity['description']
             )
-
-    # 如果 1000 次尝试后没有找到合适位置，返回 None
     return None
 
-# 放置实体并检查重叠情况
 def place_entities(anchor_entities, non_anchor_entities, floor_collision_map, successful_placements):
-    # 将锚定物体直接添加到 successful_placements
     for entity in anchor_entities:
         successful_placements.append({
             "name": entity.name,
@@ -458,11 +418,8 @@ def place_entities(anchor_entities, non_anchor_entities, floor_collision_map, su
             "description": entity.description
         })
     for entity in non_anchor_entities:
-        # 查找对应的锚定物体
         anchor_name = entity["anchor_name"]
         anchor = next((a for a in anchor_entities if a.name == anchor_name), None)
-
-        # 放置非锚定物体
         if not anchor:
             if 'place_corner' in entity["placement_rule"]:
                 entity_rectangle = place_corner(entity, floor_collision_map)
@@ -472,7 +429,6 @@ def place_entities(anchor_entities, non_anchor_entities, floor_collision_map, su
             entity_rectangle = place_entity(anchor, entity, floor_collision_map)
 
         if entity_rectangle:
-            # 将非锚定物体添加到 successful_placements
             successful_placements.append({
                 "name": entity_rectangle.name,
                 "orientation": entity_rectangle.orientation,
@@ -491,17 +447,13 @@ def layout(anchor_text, ornament_text):
     non_anchor_entities = parse_ornament_prompt_data(ornament_text, non_anchor_entities)
     print("anchor_entities:",anchor_entities)
     print("non_anchor_entities",non_anchor_entities)
-    # 初始化一个空白的地板碰撞图，0表示可用区域，1表示已被占用
     successful_placements = []
-    # 放置实体并更新碰撞检测图
     successful_placements = place_entities(anchor_entities, non_anchor_entities, floor_collision_map, successful_placements)
-    # 输出最终结果
     for placement in successful_placements:
         print(f"Placed {placement['name']} at {placement['position']}. description: {placement['description']}")
     return successful_placements    
 
 def main():
-    # 输入数据
     anchor_text = """
     [
         {
@@ -600,21 +552,15 @@ def main():
     ]
     """
 
-    # 解析anchor prompt输入数据
     floor_collision_map = initialize_collision_map(1000, 1000)
     anchor_entities, non_anchor_entities = parse_anchor_prompt_data(anchor_text,floor_collision_map)
     non_anchor_entities = parse_ornament_prompt_data(ornament_text, non_anchor_entities)
-    # 初始化一个空白的地板碰撞图，0表示可用区域，1表示已被占用
     successful_placements = []
-    # 放置实体并更新碰撞检测图
     place_entities(anchor_entities, non_anchor_entities, floor_collision_map, successful_placements)
     with open('generation_data/test.json', 'w', encoding= 'utf-8') as f:
         json.dump(successful_placements, f, indent=4, ensure_ascii=False)
-    # 输出最终结果
     for placement in successful_placements:
         print(f"Placed {placement['name']} at {placement['position']}. Description: {placement['description']}")
 
 if __name__ == "__main__":
     main()
-
-#层次化碰撞检测图

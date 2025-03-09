@@ -7,7 +7,6 @@ def extract_json(text):
     if json_data_match:
         json_data_str = json_data_match.group()
         try:
-            # 将提取出来的 JSON 字符串解析为 Python 对象
             json_data = json.loads(json_data_str)
             return json_data
         except json.JSONDecodeError as e:

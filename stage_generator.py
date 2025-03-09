@@ -4,7 +4,6 @@ from openai import OpenAI
 import argparse
 import re
 import json
-from utils.adjust_floor import *
 from utils.json_process import *
 from utils.background_projection import calcuate_background_box, process_boxes, visualization
 from utils.placement_rules import*
@@ -17,7 +16,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Generate 3D stage design from text')
     parser.add_argument('--text', type=str, required=True, help='Input text description')
     parser.add_argument('--openai_api_key', type=str, required=True, help='OpenAI API key')
-    parser.add_argument('--output_dir', type=str, default='output', help='Output directory')
+    parser.add_argument('--output_dir', type=str, required=True, help='Output directory')
     return parser.parse_args()
 
 def scene_list_generator(scripts,client):
@@ -168,7 +167,7 @@ def ornament_generator(scripts, anchor_entities, client):
         (3) "place_beside(anchor)" which places the ornament beside an existing anchor in the given list above, like placing a vase beside a TV stand.
         (4) "place_top(anchor)" which places the ornament on top of an existing anchor in the given list above with a buffer distance of x cm, like placing a vodka bottle on a table.
         (5) "place_attach(h_low, h_high, anchor)" which attachs the entity to the surface of anchor in the given list above, the entity's bottom at h_low (h_low>=anchor's h_low) and top at h_high (h_high<=anchor's h_high), like placing a clock on the house_wall.
-    For "place_top" and "place_attach" the ornament's lenght and width must less than anchor's lenght and width.
+    For "place_top" and "place_attach" the ornament's length and width must less than anchor's length and width.
     Output Format and Example:
     Provide the final list of entities in the following JSON format:
     [
@@ -357,7 +356,7 @@ def main(args):
         generated_image = pipe(prompt, guidance_scale=4).images[0]
         generated_image.save(os.path.join(args.output_dir, 'reco.png'))
 
-    print(f"all files saved to {args.output_dir}")
+    print(f"All files saved to {args.output_dir}")
         
 if __name__ == '__main__':
     args = parse_arguments()

@@ -151,13 +151,9 @@ def render(file_path,original_objects):
      
     # scene = bpy.context.scene
 
-    # # 设置渲染分辨率
     # scene.render.resolution_x = 1560
-        
  
     bpy.context.view_layer.update()
-
-    # 渲染并保存图像
 
 original_objects = get_scene_objects()    
 #1960s/The Sugarcane Field    /1980s/Medea generation_data/1980s/Medea

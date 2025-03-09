@@ -37,7 +37,10 @@ After generating the stage, you can get the rendered 3D scene in blender using t
 ```
 blender --background <Your Path>/StageDesigner/base_stage/model.blend --python <Your Path>/artist/utils/blender_shangxi.py
 ```
-## Dataset: StagePro-v1
+## Dataset: 
+### Retrieve 3D Assets
+Download the objaverse 3D assets in [<span style="color:blue">HOLODECK</span>](https://github.com/allenai/Holodeck), by default these will save to ~/.objathor-assets/2023_09_23.
+### StagePro-V1
 If you want to use the StagePro-v1 dataset for non-commercial use, please fill the [<span style="color:blue">release agreement</span>](https://github.com/deadsmither5/StageDesigner/blob/main/release%20agreement.pdf) and sent email to zxgan23@m.fudan.edu.cn
 
 ## Citation
