@@ -46,7 +46,7 @@ After generating the stage, you can get the rendered 3D scene in blender using t
 blender --background <Your Path>/StageDesigner/base_stage/model.blend --python <Your Path>/StageDesigner/utils/blender_render.py \
 -- --output_dir <same as in usage> --asset_root <home path of .objathor-assets default ~>
 ```
-## Dataset: 
+## Dataset
 ### Retrieve 3D Assets
 Download the objaverse 3D assets in [<span style="color:blue">HOLODECK</span>](https://github.com/allenai/Holodeck), by default these will save to ~/.objathor-assets/2023_09_23.
 ### StagePro-V1
