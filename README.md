@@ -1,4 +1,8 @@
+<div align="center">
+
 # StageDesigner: Artistic Stage Generation for Scenography via Theater Scripts (CVPR 2025)
+
+</div>
 
 <div align = 'center'>
 <b>Zhaoxing Gan¹, Mengtian Li¹²†, Ruhua Chen³, Zhongxia Ji³,  
@@ -12,6 +16,8 @@ Sichen Guo³, Huanling Hu¹, Guangnan Ye¹†, Zuo Hu³</b>
 
 <h5 align="center">
 <img src="https://github.com/deadsmither5/StageDesigner/blob/main/teaser.png" width="800px"/><br/>
+[<span style="color:blue">Paper</span>]()
+[<span style="color:blue">Project Page</span>](https://github.com/deadsmither5/StageDesigner)
 </h5>
 
  
@@ -31,6 +37,7 @@ python stage_generator.py \
   --openai_api_key <sk-your-key-here> \
   --output_dir <your-path>
 ```
+Our system uses gpt-4o, please make sure you have access to it.
 
 ## Rendering in blender
 After generating the stage, you can get the rendered 3D scene in blender using the following commands: 
@@ -42,7 +49,7 @@ blender --background <Your Path>/StageDesigner/base_stage/model.blend --python <
 ### Retrieve 3D Assets
 Download the objaverse 3D assets in [<span style="color:blue">HOLODECK</span>](https://github.com/allenai/Holodeck), by default these will save to ~/.objathor-assets/2023_09_23.
 ### StagePro-V1
-If you want to use the StagePro-v1 dataset for non-commercial use, please fill the [<span style="color:blue">release agreement</span>](https://github.com/deadsmither5/StageDesigner/blob/main/release%20agreement.pdf) and sent email to zxgan23@m.fudan.edu.cn
+If you want to use the StagePro-v1 dataset for non-commercial use, please fill the [<span style="color:blue">release agreement</span>](https://github.com/deadsmither5/StageDesigner/blob/main/release%20agreement.pdf) and send email to zxgan23@m.fudan.edu.cn
 
 ## Citation
 Please cite the paper if you feel it is useful.
