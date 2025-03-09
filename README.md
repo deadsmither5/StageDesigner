@@ -16,11 +16,12 @@ Sichen Guo³, Huanling Hu¹, Guangnan Ye¹†, Zuo Hu³</b>
 
 <h5 align="center">
 <img src="https://github.com/deadsmither5/StageDesigner/blob/main/teaser.png" width="800px"/><br/>
-[![Paper](https://img.shields.io/badge/Paper-PDF-%2300b4ab)](https://arxiv.org/abs/XXXX.XXXXX)
-[![Project](https://img.shields.io/badge/Project-Page-%23008B8B)](https://github.com/deadsmither5/StageDesigner)
 </h5>
 
- 
+<h4 align="center">
+  <a href=""><i>Paper</i></a> | <a href="https://deadsmither5.github.io/2025/01/03/StageDesigner/"><i>Project Page</i></a>
+</h4>
+
 ## Installation
 After cloning this repo, you can install the required dependencies using the following commands:
 ```
