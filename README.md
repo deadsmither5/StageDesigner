@@ -35,7 +35,8 @@ python stage_generator.py \
 ## Rendering in blender
 After generating the stage, you can get the rendered 3D scene in blender using the following commands: 
 ```
-blender --background <Your Path>/StageDesigner/base_stage/model.blend --python <Your Path>/StageDesigner/utils/blender_render.py -- --output_dir <same as in usage> --asset_root <home path of .objathor-assets default ~>
+blender --background <Your Path>/StageDesigner/base_stage/model.blend --python <Your Path>/StageDesigner/utils/blender_render.py \
+-- --output_dir <same as in usage> --asset_root <home path of .objathor-assets default ~>
 ```
 ## Dataset: 
 ### Retrieve 3D Assets
