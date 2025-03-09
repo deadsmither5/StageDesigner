@@ -26,16 +26,16 @@ pip install -r requirements.txt
 ## Usage
 You can genrate a stage with your text using the following commands:
 ```
-python stage_design.py \
+python stage_generator.py \
   --text "A modern art gallery with a rotating sculpture at its center." \
-  --openai_api_key sk-your-key-here \
-  --output_dir ./output
+  --openai_api_key <sk-your-key-here> \
+  --output_dir <your-path>
 ```
 
 ## Rendering in blender
-After generating the stage, you can get the rendered 3D scene in blender using the following commands:
+After generating the stage, you can get the rendered 3D scene in blender using the following commands: 
 ```
-blender --background <Your Path>/StageDesigner/base_stage/model.blend --python <Your Path>/artist/utils/blender_shangxi.py
+blender --background <Your Path>/StageDesigner/base_stage/model.blend --python <Your Path>/StageDesigner/utils/blender_render.py -- --output_dir <same as in usage> --asset_root <home path of .objathor-assets default ~>
 ```
 ## Dataset: 
 ### Retrieve 3D Assets

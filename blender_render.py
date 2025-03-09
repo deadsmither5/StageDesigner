@@ -7,6 +7,24 @@ import json
 import mathutils
 import os
 import shutil
+import argparse
+import sys
+
+def get_render_arguments():
+    parser = argparse.ArgumentParser(description='3D stage')
+    parser.add_argument('--output_dir', required=True, help='Output directory path')
+    parser.add_argument('--asset_root', 
+                        default=os.path.expanduser("~"),  # 自动获取用户主目录
+                        help='Root directory for 3D assets (default: $HOME)')
+    
+    if '--' in sys.argv:
+        argv = sys.argv[sys.argv.index('--') + 1:]
+    else:
+        argv = []
+        
+    return parser.parse_args(argv)
+
+args = get_render_arguments()
 
 def load_pickled_3d_asset(file_path, size, position, orientation):
     with gzip.open(file_path, 'rb') as f:
@@ -146,7 +164,12 @@ def render(file_path,original_objects):
             orientation = entity['orientation']
             position = entity['position']
             size, location = calculate_dimensions_and_location(position)
-            asset_path = f"/home/ganzhaoxing/.objathor-assets/2023_09_23/assets/{entity['asset_id']}/{entity['asset_id']}.pkl.gz"
+            asset_path = os.path.join(
+                args.asset_root,
+                ".objathor-assets/2023_09_23/assets",
+                entity['asset_id'],
+                f"{entity['asset_id']}.pkl.gz"
+            )
             load_pickled_3d_asset(asset_path, size, location, orientation)
      
     # scene = bpy.context.scene
@@ -156,8 +179,7 @@ def render(file_path,original_objects):
     bpy.context.view_layer.update()
 
 original_objects = get_scene_objects()    
-#1960s/The Sugarcane Field    /1980s/Medea generation_data/1980s/Medea
-for root, dirs ,files in os.walk('/home/ganzhaoxing/artist/generation_data/1980s/Medea'):
+for root, dirs, files in os.walk(args.output_dir):  
     for file in files:
         if file == 'final.json':
-            render(root,original_objects)
+            render(root, original_objects)
