@@ -16,8 +16,8 @@ Sichen Guo³, Huanling Hu¹, Guangnan Ye¹†, Zuo Hu³</b>
 
 <h5 align="center">
 <img src="https://github.com/deadsmither5/StageDesigner/blob/main/teaser.png" width="800px"/><br/>
-[<span style="color:blue">Paper</span>]()
-[<span style="color:blue">Project Page</span>](https://github.com/deadsmither5/StageDesigner)
+[![Paper](https://img.shields.io/badge/Paper-PDF-%2300b4ab)](https://arxiv.org/abs/XXXX.XXXXX)
+[![Project](https://img.shields.io/badge/Project-Page-%23008B8B)](https://github.com/deadsmither5/StageDesigner)
 </h5>
 
  
