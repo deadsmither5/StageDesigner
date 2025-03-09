@@ -22,3 +22,8 @@ conda create --name StageDesigner python=3.10
 conda activate StageDesigner
 pip install -r requirements.txt
 ```
+## Dataset: StagePro-v1
+If you want to use the StagePro-v1 dataset for non-commercial use, please fill the release agreement and sent email to zxgan23@m.fudan.edu.cn
+
+## Citation
+Please cite the paper if you feel it is useful.
