@@ -16,11 +16,26 @@ Sichen Guo³, Huanling Hu¹, Guangnan Ye¹†, Zuo Hu³</b>
 
  
 ## Installation
-Install the required dependencies using the following commands:
+After cloning this repo, you can install the required dependencies using the following commands:
 ```
 conda create --name StageDesigner python=3.10
 conda activate StageDesigner
 pip install -r requirements.txt
+```
+
+## Usage
+You can genrate a stage with your text using the following commands:
+```
+python stage_design.py \
+  --text "A modern art gallery with a rotating sculpture at its center." \
+  --openai_api_key sk-your-key-here \
+  --output_dir ./output
+```
+
+## Rendering in blender
+After generating the stage, you can get the rendered 3D scene in blender using the following commands:
+```
+blender --background <Your Path>/StageDesigner/base_stage/model.blend --python <Your Path>/artist/utils/blender_shangxi.py
 ```
 ## Dataset: StagePro-v1
 If you want to use the StagePro-v1 dataset for non-commercial use, please fill the [<span style="color:blue">release agreement</span>](https://github.com/deadsmither5/StageDesigner/blob/main/release%20agreement.pdf) and sent email to zxgan23@m.fudan.edu.cn

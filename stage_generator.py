@@ -1,7 +1,7 @@
 import os
 import openai
 from openai import OpenAI
-import pdb
+import argparse
 import re
 import json
 from utils.adjust_floor import *
@@ -13,10 +13,14 @@ from diffusers import StableDiffusionPipeline
 import torch
 from reco import create_reco_prompt
 
-os.environ["http_proxy"] = "http://localhost:7890"
-os.environ["https_proxy"] = "http://localhost:7890"
-os.environ["OPENAI_API_KEY"] = ''
-def scene_list_generator(scripts):
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Generate 3D stage design from text')
+    parser.add_argument('--text', type=str, required=True, help='Input text description')
+    parser.add_argument('--openai_api_key', type=str, required=True, help='OpenAI API key')
+    parser.add_argument('--output_dir', type=str, default='output', help='Output directory')
+    return parser.parse_args()
+
+def scene_list_generator(scripts,client):
     scene_list_prompt = f"""
     Task:You are an expert in analyzing stage scripts. Read the following script and split its content into two parts:
     1.scene descriptions: Extract detailed descriptions of the specific scenes, environments, objects, characters, their actions, and spatial information mentioned in the script. Focus on visual elements, physical spaces, and spatial relationships.
@@ -54,7 +58,6 @@ def scene_list_generator(scripts):
         }}
     ]
     """
-    client = OpenAI()
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -71,7 +74,7 @@ def scene_list_generator(scripts):
 
     return response.choices[0].message.content
 
-def anchor_generater(scripts):
+def anchor_generater(scripts,client):
     foreground_anchor_prompt = f"""
     Task:
     You are an expert in creating 3D stage foregrounds based on a script.
@@ -124,7 +127,7 @@ def anchor_generater(scripts):
     ]        
     Note: Please use the output example as a reference for the expected format, but do not include this example in your final response.
     """
-    client = OpenAI()
+
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -141,7 +144,7 @@ def anchor_generater(scripts):
 
     return response.choices[0].message.content
 
-def ornament_generator(scripts, anchor_entities):
+def ornament_generator(scripts, anchor_entities, client):
     foreground_ornament_prompt = f"""
     Task:
     You are an expert in creating 3D stage foregrounds based on a script.
@@ -184,7 +187,6 @@ def ornament_generator(scripts, anchor_entities):
     ]    
     Note: Please use the output example as a reference for the expected format, but do not include this example in your final response.
     """
-    client = OpenAI()
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -201,7 +203,7 @@ def ornament_generator(scripts, anchor_entities):
 
     return response.choices[0].message.content
 
-def background_generator(imagery_descriptions, foreground_entities, bounding_boxes):
+def background_generator(imagery_descriptions, foreground_entities, bounding_boxes, client):
     background_prompt = f"""
     Task:
     You are an imaginative expert in creating stage backdrops. The stage backdrop is defined as a 1000x1000 cm canvas, with the top-left corner at (0,0) and the bottom-right corner at (999,999), where the y-coordinate increases downward.
@@ -237,7 +239,6 @@ def background_generator(imagery_descriptions, foreground_entities, bounding_box
     ]
     Note: Please use the output example as a reference for the expected format, but do not include this example in your final response.
     """
-    client = OpenAI()
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -258,149 +259,106 @@ def background_generator(imagery_descriptions, foreground_entities, bounding_box
 def extract_non_digit(text):
     for i, char in enumerate(text):
         if char.isdigit():
-            return text[:i]  # 返回数字前的部分
-    return text  # 如果没有数字，返回原字符串
+            return text[:i]  
+    return text  
 
-def log_processed_file(log_file_path, file_path):
-    """记录已处理的文件到日志文件中"""
-    with open(log_file_path, 'a', encoding='utf-8') as log_file:
-        log_file.write(f"{file_path}\n")
-    print(f"已处理文件: {file_path}")
-    
-def load_processed_roots(log_file_path):
-    """加载已处理的目录列表"""
-    if os.path.exists(log_file_path):
-        with open(log_file_path, 'r', encoding='utf-8') as log_file:
-            processed = set(line.strip() for line in log_file)
-    else:
-        processed = set()
-    return processed    
 
 def initialize_models():
-    """初始化所需模型，并返回模型对象"""
-    # 初始化 Stable Diffusion 模型
     pipe = StableDiffusionPipeline.from_pretrained(
         "j-min/reco_sd14_laion", 
         torch_dtype=torch.float32,
-        use_safetensors=False  # 禁用 safetensors，确保使用 bin 文件
+        use_safetensors=False  
     ).to("cuda")
 
-    # 初始化 CLIP 模型
     clip_model, _, clip_preprocess = open_clip.create_model_and_transforms(
         "ViT-L-14", pretrained="laion2b_s32b_b82k"
     )
     clip_tokenizer = open_clip.get_tokenizer("ViT-L-14")
 
-    # 初始化 Sentence Transformer
     sbert_model = SentenceTransformer("all-mpnet-base-v2", device="cpu")
 
-    # 初始化 Object Retriever
     object_retriever = ObjathorRetriever(
         clip_model=clip_model,
         clip_preprocess=clip_preprocess,
         clip_tokenizer=clip_tokenizer,
         sbert_model=sbert_model,
-        retrieval_threshold=50  # 示例值
+        retrieval_threshold=50 
     )
 
     return pipe, object_retriever
 
-def main(scripts, file_path, pipe, object_retriever):
-    scene_list = scene_list_generator(scripts)
+def main(args):
+    
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    client = OpenAI(api_key=args.openai_api_key)
+
+    pipe, object_retriever = initialize_models()
+
+    scene_list = scene_list_generator(args.text, client)
     scene_list = extract_json(scene_list)
-    with open(os.path.join(file_path,'scene_list.json'), "w", encoding='utf-8') as f:
+    with open(os.path.join(args.output_dir, 'scene_list.json'), "w", encoding='utf-8') as f:
         json.dump(scene_list, f, ensure_ascii=False, indent=4)
-    Scene_descriptions = scene_list[0]['scene_descriptions']
-    Scene_descriptions = json.dumps(Scene_descriptions, ensure_ascii=False, indent=4)
-    
-    Imagery_Descriptions = scene_list[0]['imagery_descriptions']
-    Imagery_Descriptions = json.dumps(Imagery_Descriptions, ensure_ascii=False, indent=4)
-    
-    anchor_text = anchor_generater(Scene_descriptions)
+
+    scene_data = scene_list[0]
+    scene_descriptions = scene_data['scene_descriptions']
+    imagery_descriptions = scene_data['imagery_descriptions']
+
+    anchor_text = anchor_generater(scene_descriptions, client)
     anchor_text = extract_json(anchor_text)
-    with open(os.path.join(file_path,'anchor_text.json'), "w", encoding='utf-8') as f:
+    with open(os.path.join(args.output_dir, 'anchor_text.json'), "w", encoding='utf-8') as f:
         json.dump(anchor_text, f, ensure_ascii=False, indent=4)
-        
-    anchor_list = []
-    for item in anchor_text:
-        # 解析anchor实体
-        anchor_data = item["anchor_entity"]
-        anchor_list.append(anchor_data)       
-    anchor_text = json.dumps(anchor_text, ensure_ascii=False, indent=4)
-    anchor_list = json.dumps(anchor_list, ensure_ascii=False, indent=4)
-    ornament_text = ornament_generator(Scene_descriptions, anchor_list)
+
+    anchor_list = [item["anchor_entity"] for item in anchor_text]
+
+    ornament_text = ornament_generator(scene_descriptions, json.dumps(anchor_list), client)
     ornament_text = extract_json(ornament_text)
-    with open(os.path.join(file_path,'ornament_text.json'), "w", encoding='utf-8') as f:
+    with open(os.path.join(args.output_dir, 'ornament_text.json'), "w", encoding='utf-8') as f:
         json.dump(ornament_text, f, ensure_ascii=False, indent=4)
-        
-    ornament_text = json.dumps(ornament_text, ensure_ascii=False, indent=4)
-    
-    foreground_text = layout(anchor_text, ornament_text)   #通过placement_rules得到最终的前景物体信息  
-    with open(os.path.join(file_path,'foreground_layout.json'), "w", encoding='utf-8') as f:
-        json.dump(foreground_text, f, ensure_ascii=False, indent=4)   
-        
-    fore2back_layout =  []
+
+    foreground_text = layout(anchor_text, ornament_text)
+    with open(os.path.join(args.output_dir, 'foreground_layout.json'), "w", encoding='utf-8') as f:
+        json.dump(foreground_text, f, ensure_ascii=False, indent=4)
+
+    fore2back_layout = []
     foreground_entities_name = []
-    
-    for entity in foreground_text:          
+    for entity in foreground_text:
         fore2back_layout.append(calcuate_background_box(entity['position']))
         foreground_entities_name.append(entity['name'])
-        
-    #visualization(fore2back_layout,0)    
+    
     fore2back_layout = process_boxes(fore2back_layout)
-    #visualization(fore2back_layout,1)
-    
-    prompt2reco = background_generator(Imagery_Descriptions, foreground_entities_name, fore2back_layout)    
+
+    prompt2reco = background_generator(
+        imagery_descriptions, 
+        foreground_entities_name,
+        fore2back_layout,
+        client
+    )
     prompt2reco = extract_json(prompt2reco)
-    with open(os.path.join(file_path,'prompt2reco.json'), "w", encoding='utf-8') as f:
-        json.dump(prompt2reco, f, ensure_ascii=False, indent=4)    
-    
-    #retrieve 3d models for foreground 
+    with open(os.path.join(args.output_dir, 'prompt2reco.json'), "w", encoding='utf-8') as f:
+        json.dump(prompt2reco, f, ensure_ascii=False, indent=4)
+
     for entity in foreground_text:
         candidates = object_retriever.retrieve(
             [f"a 3D model of {extract_non_digit(entity['name'])}, {entity['description']}"],
-            threshold = 27)
-        if candidates == []:
-            print("didn't find 3d model for entity['name']")
-            entity['asset_id'] = ""
-        else:    
-            candidates = candidates[:10]#最多取前10个
-            asset_id_score = random.choice(candidates)
-            entity['asset_id'] = asset_id_score[0]
-            
-    with open(os.path.join(file_path,'final.json'), 'w', encoding='utf-8') as f:
-        json.dump(foreground_text, f, indent=4, ensure_ascii=False)
-    
-    caption = prompt2reco[0]['scene_description']
-    phrases = prompt2reco[0]['entities_description']
-    boxes =  prompt2reco[0]['coordinates']
-    
-    prompt = create_reco_prompt(caption, phrases, boxes, normalize_boxes=False)
-    generated_image = pipe(
-    prompt,
-    guidance_scale=4).images[0]
-    generated_image.save(os.path.join(file_path,'reco.png'))
+            threshold=27
+        )
+        entity['asset_id'] = random.choice(candidates[:10])[0] if candidates else ""
 
-if __name__ == '__main__':
-    log_file_path = "/home/ganzhaoxing/artist/generation_data/processed_files.log"
-        # 加载已处理的目录列表
-    processed_roots = load_processed_roots(log_file_path)
-    pipe, object_retriever = initialize_models()
-    # 遍历所有文件和目录
-    for root, dirs, files in os.walk('/home/ganzhaoxing/artist/dataset/fdu_stage'): 
-        for file in files:
-            if file.endswith('.txt'):
-                if root in processed_roots:
-                    print(f"跳过已处理目录: {root}")
-                    continue         
-                print(f'正在处理{root}')       
-                with open(os.path.join(root,file), 'r') as f:
-                    scripts = f.read()
-                parent_directory = os.path.dirname(os.path.join(root,file))  
-                file_path = os.path.join('/home/ganzhaoxing/artist/generation_data',parent_directory.split('/')[-2],parent_directory.split('/')[-1])   
-                if not os.path.exists(file_path):
-                    os.makedirs(file_path)
-                main(scripts, file_path, pipe, object_retriever)
-                log_processed_file(log_file_path, root)     
+    with open(os.path.join(args.output_dir, 'final.json'), 'w', encoding='utf-8') as f:
+        json.dump(foreground_text, f, indent=4, ensure_ascii=False)
+
+    if prompt2reco:
+        caption = prompt2reco[0]['scene_description']
+        phrases = prompt2reco[0]['entities_description']
+        boxes = prompt2reco[0]['coordinates']
         
-    
+        prompt = create_reco_prompt(caption, phrases, boxes, normalize_boxes=False)
+        generated_image = pipe(prompt, guidance_scale=4).images[0]
+        generated_image.save(os.path.join(args.output_dir, 'reco.png'))
+
+    print(f"all files saved to {args.output_dir}")
+        
+if __name__ == '__main__':
+    args = parse_arguments()
+    main(args)

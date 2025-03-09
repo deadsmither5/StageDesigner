@@ -79,72 +79,53 @@ def calculate_dimensions_and_location(position):
     return [width, depth, height], [center_x, center_y, center_z]
 
 def get_scene_objects():
-    """获取当前场景的所有物体"""
+   
     return set(bpy.context.scene.objects)
 
 def delete_objects(objects):
-    """删除指定的物体"""
-    bpy.ops.object.select_all(action='DESELECT')  # 清除选择
+
+    bpy.ops.object.select_all(action='DESELECT')  
     for obj in objects:
-        obj.select_set(True)  # 选择要删除的物体
-    bpy.ops.object.delete()  # 删除选中的物体
+        obj.select_set(True) 
+    bpy.ops.object.delete()  
 
-# 设置为 Cycles 渲染引擎（支持 GPU 渲染）
+
 bpy.context.scene.render.engine = 'CYCLES'  
-
-# 启用 GPU 渲染
-bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'CUDA'  # 或 'OPTIX' / 'OPENCL'
-
-# 获取所有设备并启用它们
+bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'CUDA'  
 bpy.context.preferences.addons['cycles'].preferences.get_devices()
-for device in bpy.context.preferences.addons['cycles'].preferences.devices:
-    device.use = True  # 启用所有可用的 GPU 设备
 
-# 设置当前场景使用 GPU 设备
+for device in bpy.context.preferences.addons['cycles'].preferences.devices:
+    device.use = True  
+
 bpy.context.scene.cycles.device = 'GPU'
 
 for name in ["立方体.001","立方体.002","立方体.003","立方体.004"] :       
-    obj = bpy.data.objects.get(name)  # 替换为你的物体名称   
-    # 缩放物体
+    obj = bpy.data.objects.get(name)  
+ 
     obj.scale.x *= 0.77
-
-    
-# 设置相机
+ 
 camera = bpy.context.scene.camera
 
-# 如果场景中没有相机，就添加一个
 if not camera:
-    bpy.ops.object.camera_add(location=(0, 0, 0))  # 创建新的相机
+    bpy.ops.object.camera_add(location=(0, 0, 0)) 
     camera = bpy.context.active_object
     camera.name = "Camera"
-
-    # 设置相机位置
     camera.location = (0, -37.2892, 8.5)
-
-    # 设置相机旋转 (欧拉角: XYZ)
     camera.rotation_euler = (1.4570, 0.0000, 0.0026)
-
-    # 设置相机的焦距（毫米）
     camera.data.lens = 35.0
-
-    # 设置传感器的宽度和高度（毫米）
     camera.data.sensor_width = 36.0
     camera.data.sensor_height = 24.0
-
-    # 设置相机的剪切平面范围
-    camera.data.clip_start = 0.1  # 近剪切平面
-    camera.data.clip_end = 1000.0  # 远剪切平面
-
-    # 设置相机为当前场景的活动相机
+    camera.data.clip_start = 0.1  
+    camera.data.clip_end = 1000.0  
     bpy.context.scene.camera = camera  
 
-def render(file_path,original_objects):#file_path like: "/home/ganzhaoxing/artist/generation_data/1960s/The Younger Generation"
-    # 背景板设置
+def render(file_path,original_objects):
+
     bpy.ops.mesh.primitive_plane_add(size=10.24, location=(0, 0, 5.12))
     background_plane = bpy.context.object
     background_plane.name = "Background Plane"
     background_plane.rotation_euler = (1.5708, 0, 0)    
-    # 背景材质
+
     image_path = os.path.join(file_path,'reco.png')
     bg_image = bpy.data.images.load(image_path)
 
@@ -156,7 +137,7 @@ def render(file_path,original_objects):#file_path like: "/home/ganzhaoxing/artis
     background_material.node_tree.links.new(bsdf.inputs['Base Color'], tex_image.outputs['Color'])
     background_plane.data.materials.append(background_material)
 
-    # 加载前景实体
+  
     with open(os.path.join(file_path,'final.json'), 'r', encoding='utf-8') as f:
         entities = json.load(f)
         for entity in entities:
@@ -167,28 +148,16 @@ def render(file_path,original_objects):#file_path like: "/home/ganzhaoxing/artis
             size, location = calculate_dimensions_and_location(position)
             asset_path = f"/home/ganzhaoxing/.objathor-assets/2023_09_23/assets/{entity['asset_id']}/{entity['asset_id']}.pkl.gz"
             load_pickled_3d_asset(asset_path, size, location, orientation)
-            source_folder = f"/home/ganzhaoxing/.objathor-assets/2023_09_23/assets/{entity['asset_id']}"  # 文件夹 b 的完整路径
-            destination_folder = f"/home/ganzhaoxing/artist/paper_image/assets/{entity['asset_id']}"  # 复制到 c 下的目标路径
-
-            # 执行复制
-            try:
-                shutil.copytree(source_folder, destination_folder)
-                print(f"文件夹 '{source_folder}' 已成功复制到 '{destination_folder}'")
-            except FileExistsError:
-                print(f"目标文件夹 '{destination_folder}' 已存在，复制未执行")
-            except Exception as e:
-                print(f"复制时发生错误: {e}")
+     
     # scene = bpy.context.scene
 
     # # 设置渲染分辨率
     # scene.render.resolution_x = 1560
         
-    # 更新 Blender 视图层
+ 
     bpy.context.view_layer.update()
 
     # 渲染并保存图像
-
-    print("新物体已删除，场景恢复至初始状态。")
 
 original_objects = get_scene_objects()    
 #1960s/The Sugarcane Field    /1980s/Medea generation_data/1980s/Medea
